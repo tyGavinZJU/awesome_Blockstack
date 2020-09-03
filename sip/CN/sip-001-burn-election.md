@@ -69,92 +69,45 @@ Stacks 2.0 区块是与底层燃烧链共同产生的。每次燃烧链网络生
 
 与大多数现有的区块链不同，Stacks块不是原子产生的。当选举领导者时，领导者可以在从用户接收到交易时将交易动态打包为一系列 *“微块”* 。从逻辑上讲，领导者出了一个块；领导者只是不需要在使用权开始时提交即将广播的所有数据。此策略首先在 [Bitcoin-NG](https://www.usenix.org/node/194907) 系统中进行了描述，并在Stacks区块链中进行了一些修改。特别是，领导者会承诺在其任期内必须广播的某些交易，可能会在 *“微块”* 中机会性地传输一些交易。
 
-### Novel properties enabled by Proof of Burn
+### PoB带来的新颖属性
 
-Each Stacks block is anchored to the burn chain by
-way of a cryptographic hash.  That is, the burn chain's canonical transaction
-history contains the hashes of all Stacks blocks ever produced -- even ones that
-were not incorporated into any fork of the Stacks blockchain.  Moreover, extra
-metadata about the block, such as parent/child linkages, are
-are written to the burn chain.  This gives the
-Stacks blockchain three properties that existing blockchains do not possess:
+比特币底链存储着Stacks区块链的hash值，这使得Stacks相比较其他区块链具备了以下三种不同的属性：
 
-* **Global knowledge of time** -- Stacks blockchain peers each perceive the passage of time
-  consistently by measuring the growth of the underlying burn chain.  In
-particular, all correct Stacks peers that have same view of the burn chain can
-determine the same total order of Stacks blocks and leader epochs.  Existing blockchains do not
-have this, and their peers do not necessarily agree on the times when blocks were produced.
+- **全局时间** -- 比特币高度为Stacks区块链提供了时间戳
 
-* **Global knowledge of blocks** -- Each correct Stacks peer with the same
-  view of the burn chain will also have the same view of the set of Stacks
-blocks that *exist*.  Existing blockchains do not have this, but instead
-rely on a well-connected peer network to gossip all blocks.
+- **全局区块** -- Stacks区块链并不高度依赖P2P广播，底链为Stacks区块链提供了部分核心信息。
 
-* **Global knowledge of cumulative work** -- Each correct Stacks peer with the same view
-  of the burn chain will know how much cumulative cryptocurrency was destroyed
-and how long each competing fork is.  Existing
-blockchains do not have this -- a private fork can coexist with all public
-forks and be released at its creators' discression (often with harmful effects
-on the peer network).
+- **全局累计工作量** -- 通过比特币网络可以获取共识相关信息（比如说燃烧了多少BTC、每个分支竞争的情况）
 
-The Stacks blockchain leverages these properties to implement three key features:
 
-* **Mitigate block-withholding attacks**:  Like all single-leader blockchains,
-  the Stacks blockchain allows the existence of multiple blockchain forks.
-These can arise whenever a leader is selected but does not produce a block, or
-produces a block that is concurrent with another block.  The
-design of the Stacks blockchain leverages the fact that all _attempts_ to produce
-a block are known to all leaders in advance in order to detect and mitigate
-block-withholding attacks, including selfish mining.  It does not prevent these
-attacks, but it makes them easier to detect and offers peers more tools to deal
-with them than are available in existing systems.
 
-* **Ancilliary proofs enhance chain quality**:  In the Stacks blockchain, peers can enhance
-  their preferred fork's chain quality by _contributing_ burnt tokens to their
-preferred chain tip.  This in turn helps ensure chain liveness -- small-time
-participants (e.g. typical users) can help honest leaders that commit to
-the "best" chain tip get elected, and punish dishonest
-leaders that withhold blocks or build off of other chain tips.
-Users leverage this property to construct _fair mining pools_, where users can
-collectively generate a proof to select a chain tip to build off of and receive a proportional share of the
-block reward without needing to rely on any trusted middlemen to do so.
+Stacks区块链利用这些属性来实现三个关键功能：
 
-* **Ancilliary proofs to hedge bets**:  Because anyone can produce a proof of burn
-in favor of any chain tip, leaders can hedge their bets on their preferred chain tips by distributing
-their proofs across _all_ competing chain tips.  Both fair mining pools and generating
-proofs over a distribution of chain tips are possible only because all peers have 
-knowledge of all existing chain tips and the proofs behind them.
+  
+- **缓解区块扣缴攻击**
+  - [区块扣缴攻击](https://arxiv.org/pdf/1402.1718/): 矿工在矿池中出块，但是不把结果提交给矿池，将结果转移出去再出块。
 
-## Leader Election
+- **辅助证明提高了链的质量**
 
-The Stacks blockchain makes progress by selecting successive leaders to produce
-blocks.  It does so by having would-be leaders submit their candidacies
-by burning an existing cryptocurrency.
-A leader is selected to produce a block based on two things:
+- **辅助证明用来对冲赌注**
 
-* the amount of cryptocurrency burned and energy expended relative to the other candidates
-* an unbiased source of randomness
+## 领导人选举
 
-A new leader is selected whenever the burn chain produces a new block -- the
-arrival of a burn chain block triggers a leader election, and terminates the
-current leader's tenure.
+领导者需要燃烧现有加密货币来提交候选人，最终成为潜在的领导者
 
-The basic structure for leader election through proof of burn is that
-for some Stacks block _N_, the leader is selected via some function of
-that leader's total cryptocurrency burnt in a previous block _N'_ on the
-underlying burn chain.  In such a system, if a candidate _Alice_ wishes to be a leader of a
-Stacks block, she issues a burn transaction in the underlying burn
-chain which both destroys some cryptocurrency.
-The network then uses cryptographic sortition to choose a
-leader in a verifiably random process, weighted by the sums of the burn amounts.
-The block in which this burn transaction is
-broadcasted is known as the "election block" for Stacks block _N_.
+选择领导者基于以下两个方面：
+- 燃烧的加密货币数量
+- 公正的随机性来源
 
-Anyone can submit their candidacy as a leader by issuing a burn transaction on
-the underlying burn chain, and have a non-zero chance of being selected by the
-network as the leader of a future block.
+每当燃烧链产生新区块时，都会选择一个新的领导者。燃烧链新区块的产生会触发一次领导者选举，并终止当前领导者的任期。
 
-### Committing to a chain tip
+想要成为领导者的人需要在燃烧链发送燃烧交易，然后，网络在诸多燃烧交易中通过加密分类在可验证的随机过程中选择一个领导者，并以燃烧数量之和加权。广播出该消息的块称为Stacks区块链的“选举块”。
+
+任何人都可以通过在基础刻录链上发布刻录交易来提交其作为领导者的候选人资格，并且网络将其选为未来区块的领导者的可能性不为零。
+
+### 向链头提交
+
+任何人都可以成为领导者，这也导致了Stacks 区块链可能有很多竞争分支，其中之一是（canonical fork）标准分支。
 
 The existence of multiple chain tips is a direct consequence of the
 single-leader design of the Stacks blockchain.

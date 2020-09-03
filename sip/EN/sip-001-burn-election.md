@@ -240,7 +240,7 @@ block-withholding attacks, including selfish mining.  It does not prevent these
 attacks, but it makes them easier to detect and offers peers more tools to deal
 with them than are available in existing systems.
 
-* **Ancilliary proofs enhance chain quality**:  In the Stacks blockchain, peers can enhance
+* **Ancillary proofs enhance chain quality**:  In the Stacks blockchain, peers can enhance
   their preferred fork's chain quality by _contributing_ burnt tokens to their
 preferred chain tip.  This in turn helps ensure chain liveness -- small-time
 participants (e.g. typical users) can help honest leaders that commit to
@@ -250,7 +250,7 @@ Users leverage this property to construct _fair mining pools_, where users can
 collectively generate a proof to select a chain tip to build off of and receive a proportional share of the
 block reward without needing to rely on any trusted middlemen to do so.
 
-* **Ancilliary proofs to hedge bets**:  Because anyone can produce a proof of burn
+* **Ancillary proofs to hedge bets**:  Because anyone can produce a proof of burn
 in favor of any chain tip, leaders can hedge their bets on their preferred chain tips by distributing
 their proofs across _all_ competing chain tips.  Both fair mining pools and generating
 proofs over a distribution of chain tips are possible only because all peers have 

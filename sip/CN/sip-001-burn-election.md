@@ -109,6 +109,8 @@ Stacks区块链利用这些属性来实现三个关键功能：
 
 任何人都可以成为领导者，这也导致了Stacks 区块链可能有很多竞争分支，其中之一是（canonical fork）标准分支。
 
+多个链头的存在是Stacks区块链的“单领导”设计的直接结果。因为任何人都可以成为领导者，所以这意味着即使“作恶”的领导者也可以被选中。如果领导者在传播其块数据之前崩溃了，或者产生了一个无效的块，那么在其担任领导者期间，不会有任何块被附加到领导者选择的链头上。同样，如果领导者正在根据过时的数据进行操作，那么领导者可能会产生一个其父级不是“最佳”分支上的最新块，在这种情况下，“最佳”分支不会在其时期内增长。这些故障必须由Stacks区块链容忍。
+
 The existence of multiple chain tips is a direct consequence of the
 single-leader design of the Stacks blockchain.
 Because anyone can become a leader, this means that even misbehaving
@@ -120,6 +122,8 @@ block whose parent is not the latest block on the "best" fork, in which case
 the "best" fork does not grow during its epoch. These
 kinds of failures must be tolerated by the Stacks blockchain.
 
+容忍这些失败的结果是，Stacks区块链可能有多个竞争分叉。其中之一被认为是具有“最佳”链头的标准叉。设计合理的区块链鼓励领导者识别“最佳”叉子，并通过要求他们 _不可逆转地提交_ 到在他们领导的时期将要建立的链头上，来向其添加区块。该承诺必须与一些非自由资源的支出挂钩，例如能源，存储，带宽或（在此区块链的情况下）现有加密货币的支出。直观感受是，如果领导者没有建立在“最佳”链头分叉上，那么它提交区块的行为将会浪费它自己的资源。
+
 A consequence of tolerating these failures is that the Stacks blockchain 
 may have multiple competing forks; one of which is considered the canonical fork
 with the "best" chain tip.  However, a well-designed
@@ -130,6 +134,9 @@ This commitment must be tied to an expenditure of some
 non-free resource, like energy, storage, bandwidth, or (in this blockchain's case) an
 existing cryptocurrency.  The intuition is that if the leader does _not_ build on
 the "best" fork, then it commits to and loses that resource at a loss.
+
+提交一个链头，但不一定是新数据，可用于鼓励当今其他区块链中的安全性和生命力。例如，在比特币中，矿工搜索包含当前链头的哈希的倒数。如果他们不能赢得那个挑战，那就浪费了资源。由于他们必须尝试越来越深的分叉来发起双花攻击，因此生产竞争性分叉会成倍增加能量消耗。领导者挽回损失的唯一方法是将他们的分叉网络中的其余部分视为“最佳”分叉（即他们铸造的代币是可以消费的）。虽然这不能保证活动性或安全性，但对不将区块附加到“最佳”链头中的领导者进行惩罚，同时奖励这样做的领导者，可以为领导人提供强大的经济诱因，使他们可以在“最佳”叉中建立新区块（生命力），并且不要尝试构建可恢复先前提交的块的备用分支（安全性）。
+
 
 Committing to a _chain tip_, but not necessarily new data,
 is used to encourage both safety and liveness in other blockchains
@@ -146,6 +153,8 @@ incentive for leaders to build and append new blocks to the "best" fork
 (liveness) and to _not_ attempt to build an alternative fork that reverts
 previously-committed blocks (safety).
 
+Stacks区块链提供相同的鼓励很重要。尤其是，领导者故意孤立块以牟取暴利进行双花攻击的能力是不期望出现的安全违规行为，这样做的领导者必须受到惩罚。在领导者知道是否包括其区块之前，领导者必须公开其链头的提交，从而强制达成目的 - 只有在提交了其燃烧证明的区块被接受为“最佳”分支的情况下，他们才能接收Stacks代币。
+
 It is important that the Stacks blockchain offers the same encouragement.
 In particular, the ability for leaders to intentionally orphan blocks in order
 to initiate double-spend attacks at a profit is an undesirable safety violation,
@@ -154,7 +163,13 @@ making a leader announce their chain tip commitment _before they know if their
 blocks are included_ -- they can only receive Stacks tokens if the block for
 which they submitted a proof of burn is accepted into the "best" fork.
 
-### Election Protocol
+### 选举协议
+
+为了鼓励添加新块的安全性和生命力，领导人选举协议要求领导人在知道是否会被选中之前先烧掉加密货币并花费能量。为了实现这一目标，选举领导者的协议分为三个步骤。每位主要候选人都向燃烧链提交两项交易
+  - 一笔用于注册用于选举的公钥，
+  - 另一笔用于进行代币燃烧和链头记录。
+   
+这些交易确认后，领导者将会被选出，领导者可以添加新区块并且传播区块数据。
 
 To encourage safety and liveness when appending to the blockchain, the leader
 election protocol requires leaders to burn cryptocurrency and spend energy before they know
@@ -164,11 +179,15 @@ their public key used for the election, and one to commit to their token burn an
 Once these transactions confirm, a leader is selected and the leader can
 append and propagate block data.
 
+块选择由可验证的随机函数（VRF）驱动。领导者们提交交易以注册其VRF证明密钥，然后尝试通过在其首选的链尖的种子上生成VRF证明来附加区块-领导者在提交其尖头的证明后会获悉无偏的随机字符串。所得的VRF证明用于通过密码分类选择下一个块以及下一个种子。
+
 Block selection is driven by a _verifiable random function_ (VRF).  Leaders submit transactions to
 register their VRF proving keys, and later attempt to append a block by generating a
 VRF proof over their preferred chain tip's _seed_ -- an unbiased random string
 the leader learns after their tip's proof is committed.  The resulting VRF proof is used to
 select the next block through cryptographic sortition, as well as the next seed.
+
+该协议的设计使得领导者只能观察燃烧链数据，并确定可能存在的所有Stacks区块链分支的集合。燃烧链上的数据为所有同级提供了足够的数据，以识别所有可能的链提示，并重构建议的块父关系和块VRF种子。但是，链上数据不指示块或种子是否有效。
 
 The protocol is designed such that a leader can observe _only_ the burn-chain
 data and determine the set of all Stacks blockchain forks that can plausibly
@@ -177,7 +196,13 @@ chain tips, and to reconstruct the proposed block parent relationships and
 block VRF seeds.  The on-burn-chain data does _not_ indicate whether or not a block or a seed is
 valid, however.
 
-#### Step 1: Register key
+#### 步骤 1: 注册密钥
+
+在该协议的第一步中，每个领导者候选人都通过发送密钥交易为将来的选举进行注册。 在此交易中，领导者承诺使用公共证明密钥，领导者候选人将使用该密钥为他们建立的链提示生成下一个种子。
+
+必须在燃烧链上充分确认关键交易，然后领导者才能继续下一步的链小费。 例如，领导者可能需要等待10个纪元才能开始提交给链条提示。 确切的数字将由协议定义。
+
+确认后，密钥交易可随时用于提交链提示。 这是因为不能预先确定下一个块的选择。 但是，密钥只能使用一次。
 
 In the first step of the protocol, each leader candidate registers itself for a
 future election by sending a _key transaction_. In this transaction, the leader
@@ -193,7 +218,21 @@ The key transaction can be used at any time to commit to a chain tip, once
 confirmed.  This is because the selection of the next block cannot be determined
 in advance.  However, a key can only be used once.
 
-#### Step 2: Burn & Commit
+#### 步骤 2: 燃烧 & 提交
+
+一旦确定了领导者的关键交易，该领导者将成为竞选下一候选人的候选人，在该候选人必须发送承诺交易。此交易将燃烧领导者的加密货币（燃烧证明），并注册领导者的首选链梢和新的VRF种子，以供在加密分类中选择。
+
+此事务将提交以下信息：
+
+- 产生区块所消耗的加密货币数量
+- 块将附加到的链头
+- 用来生成区块种子的证明密钥
+- 如果选择了该领导者，则需要生成新的VRF种子
+- 领导者承诺将包含在其区块中的所有交易数据的摘要（请参阅“领导者的操作”）。
+- 种子值是链头端种子的加密哈希（可在刻录链上使用），并且该块的VRF证明是使用组长的证明密钥生成的。 VRF证明本身存储在链下的Stacks块头中，但其哈希值（下一次分类的种子）被提交到链上。
+
+包含候选人承诺交易的刻录链块用作领导者块（即N）的选举块，并用于确定哪个块承诺“获胜”。
+
 
 Once a leader's key transaction is confirmed, the leader will be a candidate for election
 for a subsequent burn block in which it must send a _commitment transaction_.
@@ -219,10 +258,9 @@ The burn chain block that contains the candidates' commitment transaction
 serves as the election block for the leader's block (i.e. _N_), and is used to
 determine which block commitment "wins."
 
-#### Step 3: Sortition
+#### 步骤 3: 抽签
 
-In each election block, there is one election across all candidate leaders (across
-all chain tips).  The next block is determined with the following algorithm:
+在每个选举区中，所有候选人领导者都进行一次选举（所有链条提示）。 使用以下算法确定下一个块：
 
 ```python
 # inputs:
@@ -267,6 +305,17 @@ def select_block(SEED, BURNS, PROOFS, BURN_BLOCK_HEADER.nonce):
       LAST_BURN_OFFSET = BURN_OFFSET
    return (DISTRIBUTION[-1].PUBKEY, DISTRIBUTION[-1].BLOCK_HASH, hash(PROOFS[DISTRIBUTION[-1].PUBKEY]))
 ```
+
+只有一位领导人会赢得选举。不能保证领导者产生的区块是有效的，也不是建立在最佳Stacks分支之上的。但是，一旦选择了领导者，所有对等方都将了解有关领导者决策的足够信息，以便网络中的任何其他对等方都可以提交和中继块数据。至关重要的是，对于任何同龄人，显而易见的是优胜者，而每个候选人都无需事先提交自己的区块。
+
+使用先前的VRF种子和当前的块PoW解决方案对分布进行采样。这样可以确保没有人-甚至不是烧伤链矿工-都不知道将使用PoW种子选择烧伤分数分布证明中的哪个公钥。
+
+领导者可以按自己的意愿进行燃烧链交易并构建区块。只要以正确的顺序广播刻录链事务和区块，领导者就有机会赢得选举。这样就可以实现许多不同的领导者，例如高安全性领导者，在这些领导者中，所有私钥都保存在空白计算机上，并且已签名的块和事务是脱机生成的。
+
+In each election block, there is one election across all candidate leaders (across
+all chain tips).  The next block is determined with the following algorithm:
+
+
 
 Only one leader will win an election.  It is not guaranteed that the block the
 leader produces is valid or builds off of the best Stacks fork.  However,
